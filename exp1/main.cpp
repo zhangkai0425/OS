@@ -66,8 +66,6 @@ private:
     condition_variable cond;
 };
 
-
-
 vector<cus_in>cus_ins;
 vector<cus_out>cus_outs;
 
