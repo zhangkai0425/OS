@@ -1,18 +1,7 @@
-//
 //  main.cpp
 //  操作系统大作业实验1
-//
 //  Created by 张凯 on 2022/5/9.
 //  Copyright © 2022 张凯. All rights reserved.
-//
-//  using C++11
-
-//  1.某个号码只能由一名顾客取得
-//  2.不能有多于一个柜员叫同一个号
-//  3.有顾客的时候，柜员才叫号
-//  4.无柜员空闲的时候，顾客需要等待
-//  5.无顾客的时候，柜员需要等待
-
 #include <iostream>
 #include <vector>
 #include <mutex>
@@ -24,7 +13,7 @@
 using namespace std;
 
 //柜台数量和最大顾客数
-const int N_Counter = 4;
+const int N_Counter = 1;
 const int N_Customer = 20;
 
 int customer_number = 0;//顾客总数
@@ -83,15 +72,12 @@ vector<cus_in>cus_ins;
 vector<cus_out>cus_outs;
 
 Semaphore sema_customer(0);                                //同步信号量,确保柜台处于等待状态情况
-Semaphore sema_cus_threads;                    //信号量模拟Windows WaitForMultipleObjects操作
 
-std::mutex counter_mutex[N_Counter];  //柜台互斥量,防止一个柜台服务多个顾客
-std::mutex customer_mutex;           //顾客互斥量,防止多个顾客同时取相同的号
+std::mutex counter_mutex[N_Counter];                        //柜台互斥量,防止一个柜台服务多个顾客
+std::mutex customer_mutex;                                  //顾客互斥量,防止多个顾客同时取相同的号
 time_t time_begin = time(NULL);
 void PVcounter(int id){
-    // 
     while (true) {
-        // cout<<"现在的情况:"<<customer_served<<" "<<customer_number<<endl;
         //等待顾客出现 P操作
         sema_customer.P();
         //占用柜台资源
@@ -101,9 +87,8 @@ void PVcounter(int id){
         //模拟服务时间
         int now_serve = customer_serve;
         customer_serve ++;
-        cout<<"服务的时间:"<<cus_outs[now_serve].time_serve<<" counter id号:"<<id<<endl;
+        cout<<"服务时长:"<<cus_outs[now_serve].time_serve<<" counter id:"<<id<<endl;
         std::this_thread::sleep_for(std::chrono::seconds(cus_outs[now_serve].time_serve));
-        cout<<"服务结束了！"<<endl;
         time_t time_end = time(NULL);
         cus_outs[now_serve].time_beginserve = time_start - time_begin;
         cus_outs[now_serve].time_served = time_end - time_start;
@@ -113,16 +98,13 @@ void PVcounter(int id){
         counter_mutex[id].unlock();
         //总服务过的人数+1
         customer_served ++;
-        cout<<"总服务过的人数:"<<customer_served<<endl;
-        sema_cus_threads.V();
-        sema_cus_threads.getcount();
+        cout<<"服务结束:总服务过的人数:"<<customer_served<<endl;
     }
 }
 void PVcustomer(int id){
     //模拟睡眠至进入线程的时间
-    cout<<"顾客进入时间:"<<cus_ins[id].time_in<<endl;
     std::this_thread::sleep_for(std::chrono::seconds(cus_ins[id].time_in));
-    cout<<"顾客进入了银行！"<<endl;
+    cout<<"顾客进入银行 id = " <<cus_ins[id].cus_number<<" 进入时间:"<<cus_ins[id].time_in<<" 需要服务时长:"<<cus_ins[id].time_serve<<endl;
     //占用银行取号机
     customer_mutex.lock();
     cus_out tmp_cus;
@@ -158,10 +140,19 @@ int main(){
     //创建柜台线程
     for(int j=0; j<N_Counter;j++)
         Thread.push_back(std::thread(PVcounter,j));
-    //当服务人数达到顾客数时,执行之后语句,关闭所有线程-->模拟Windows WaitForMultipleObjects操作
-    // exit(0);
     //等待线程结束,关闭线程
     while(customer_served<customer_number);
-    for(int i=0;i<Thread.size();i++)
+
+
+    cout<<"---------------------------顾客接待情况表----------------------------"<<endl;
+    cout << "顾客编号" << '\t' 
+         << "进入时间" << '\t' 
+         << "开始时间" << '\t' 
+         << "服务时间" << '\t' 
+         << "柜台号  " << endl;
+    for(auto x:cus_outs)
+        cout << x.cus_number << '\t' << '\t' << x.time_in << '\t' << '\t' << x.time_beginserve << '\t' << '\t' << x.time_serve << '\t' << '\t'<<x.counter_no<<endl;
+
+    for (int i = 0; i < Thread.size(); i++)
         Thread[i].~thread();
 }
