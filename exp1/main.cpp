@@ -141,13 +141,13 @@ int main(){
     //等待线程结束,关闭线程
     while(customer_served<customer_number);
 
-
     cout<<"---------------------------顾客接待情况表----------------------------"<<endl;
     cout << "顾客编号" << '\t' 
          << "进入时间" << '\t' 
          << "开始时间" << '\t' 
          << "服务时间" << '\t' 
          << "柜台号  " << endl;
+         
     for(auto x:cus_outs)
         cout << x.cus_number << '\t' << '\t' << x.time_in << '\t' << '\t' << x.time_beginserve << '\t' << '\t' << x.time_serve << '\t' << '\t'<<x.counter_no<<endl;
 
