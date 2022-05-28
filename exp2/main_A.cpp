@@ -14,6 +14,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <queue>
+#include <time.h>
 #include <condition_variable>
 
 using namespace std;
@@ -275,7 +276,10 @@ int main()
     memcpy(nums, buffer, len);
     //解除映射
     munmap(buffer, len);
-
+    //计时变量
+    clock_t start, finish;
+    //计时开始
+    start = clock();
     //进入快速排序进程
     pair<int, int> T = make_pair(0, Amount - 1);
     thread_open_mutex.lock();
@@ -284,8 +288,9 @@ int main()
     print_mutex.lock();
     cout << "Thread num:" << Thread.size() << endl;
     print_mutex.unlock();
-    while (sorted_num < Amount)
-        ;
+    while (sorted_num < Amount);
+    //计时结束
+    finish = clock();
     //解除映射
     munmap(nums, len);
 
@@ -302,6 +307,7 @@ int main()
     }
     out_txt.close();
     cout << "一切顺利!" << endl;
+    cout << "总用时: "<<double(finish - start)/CLOCKS_PER_SEC<<" seconds"<<endl;
     //销毁线程
     for (int i = 0; i < Thread.size(); i++)
         Thread[i].~thread();
