@@ -6,6 +6,7 @@
 #include <iostream>
 #include <vector>
 #include <mutex>
+#include <thread>
 #include <fstream>
 #include <algorithm>
 #include <sys/mman.h>
@@ -68,6 +69,9 @@ queue<pair<int, int>> unsorted;
 //队列长度信号量
 Semaphore queue_length(0); //队列长度信号量,如果小于等于0,当前排序进程应该阻塞
 
+//总线程
+vector<std::thread> Thread;
+
 // quicksort algorithm
 void quicksort(int *nums,int L,int R){
     auto ref = nums[L],i = L,j = R;
@@ -85,7 +89,23 @@ void quicksort(int *nums,int L,int R){
         quicksort(nums, i+1, R);
     }
 }
-
+int getmid(int *nums,int L,int R){
+    int ref = nums[L],i=L,j=R;
+    if(L<R){
+        while(i!=j){
+            while(nums[j]>=ref && j>i)
+                j--;
+            while(nums[i]<=ref && j>i)
+                i++;
+            if(i<j)
+                swap(nums[i], nums[j]);
+        }
+        swap(nums[L], nums[i]);
+    }
+    auto mid = i;
+    //得到分割的中点
+    return mid;
+}
 void Sort(int *nums,pair<int, int>LR){
     int L = LR.first;
     int R = LR.second;
@@ -102,64 +122,102 @@ void Sort(int *nums,pair<int, int>LR){
                 pair<int, int>T = unsorted.front();
                 unsorted.pop();
                 print_mutex.lock();
-                cout<<"out node:"<<"(L,R) = ("<<T.first<<","<<T.second<<")"<<endl;
-                print_mutex.unlock();
-                L = T.first;
-                R = T.second;
-            }
-            continue;
-        }
-        if(L<R){
-            print_mutex.lock();
-            cout<<"分割序列:"<<"(L,R) = ("<<L<<","<<R<<")"<<endl;
-            print_mutex.unlock();
-        }
-        if(R-L<=1000){
-            quicksort(nums, L, R);
-            sorted_num_mutex.lock();
-            sorted_num = sorted_num + R-L+1;
-            print_mutex.lock();
-            cout<<"already sorted num:"<<sorted_num<<endl;
-            print_mutex.unlock();
-            sorted_num_mutex.unlock();
-            //此进程运行结束,可以从队列中取出未排序的序列->复用当前进程,不必重新关闭和开启
-            if(sorted_num==Amount) break;
-            else{
-                //占用元素,判断队列是否有元素 P操作
-                queue_length.P();
-                request_queue.lock();
-                pair<int, int> T = unsorted.front();
-                unsorted.pop();
-                print_mutex.lock();
-                cout<<"out node:"<<"(L,R) = ("<<T.first<<","<<T.second<<")"<<endl;
+//                cout<<"out node:"<<"(L,R) = ("<<T.first<<","<<T.second<<")"<<endl;
                 print_mutex.unlock();
                 request_queue.unlock();
                 L = T.first;
                 R = T.second;
             }
+            continue;
         }
-        else if
-        
+        else if(L<R){
+            if(R-L<=1000){
+                quicksort(nums, L, R);
+                sorted_num_mutex.lock();
+                sorted_num = sorted_num + R-L+1;
+                print_mutex.lock();
+                cout<<"排序完数目:"<<sorted_num<<endl;
+                print_mutex.unlock();
+                sorted_num_mutex.unlock();
+                //此进程运行结束,可以从队列中取出未排序的序列->复用当前进程,不必重新关闭和开启
+                if(sorted_num==Amount) break;
+                else{
+                    //占用元素,判断队列是否有元素 P操作
+                    queue_length.P();
+                    request_queue.lock();
+                    pair<int, int> T = unsorted.front();
+                    unsorted.pop();
+                    request_queue.unlock();
+                    L = T.first;
+                    R = T.second;
+                }
+            }
+            // R-L>1000的情况,进行分割以及进入队列操作
+            else{
+                
+                auto mid = getmid(nums, L, R);
+                if(mid==L){
+                    sorted_num_mutex.lock();
+                    sorted_num ++;
+                    sorted_num_mutex.unlock();
+                    L++;
+                }
+                else if(mid==R){
+                    sorted_num_mutex.lock();
+                    sorted_num ++;
+                    sorted_num_mutex.unlock();
+                    R--;
+                }
+                else{
+                    // 进行分治操作->二叉树分割
+                    sorted_num_mutex.lock();
+                    sorted_num ++; //考虑到中间点无需排序了
+                    sorted_num_mutex.unlock();
+                    //开辟新进程
+                    thread_open_mutex.lock();
+                    if(Thread.size()==20){
+                        //进程数已经达到20
+                        //入队操作锁
+                        request_queue.lock();
+                        unsorted.push(make_pair(mid+1, R));
+                        queue_length.V();
+                        request_queue.unlock();
+                        R = mid - 1;
+                    }
+                    else{
+                        //仅右子树进入线程,反之如果会造成死锁
+                        pair<int, int> T = make_pair(mid+1, R);
+                        Thread.push_back(std::thread(Sort,nums,T));
+                        print_mutex.lock();
+                        cout<<"线程总数:"<<Thread.size()<<endl;
+                        print_mutex.unlock();
+                        R = mid - 1;
+                    }
+                    thread_open_mutex.unlock();
+                    
+                }
+
+            }
+        }
     }
-    
-    
+    print_mutex.lock();
+    cout<<"退出线程:"<<endl;
+    print_mutex.unlock();
+    return ;
 }
-
-
-
 
 int main() {
     //二进制文件
     fstream data_in,data_out;
-    data_in.open("data.mat",ios_base::out|ios_base::binary);
-    data_out.open("out.mat",ios_base::out|ios_base::binary);
+    data_in.open("data.dat",ios_base::out|ios_base::binary);
+    data_out.open("out.dat",ios_base::out|ios_base::binary);
     if(!data_in.is_open()){
         std::cerr<<"Opening file error!"<<endl;
         exit(0);
     }
     std::srand(unsigned(time(nullptr)));
     for(int i=0;i<Amount;i++)
-        data[i] = rand();
+        data[i] = rand()%10000;
     data_in.write((char*)data, Amount*sizeof(int));
     data_in.close();
     data_out.close();
@@ -171,9 +229,10 @@ int main() {
         if(i%10==9)
             data_txt<<endl;
     }
+    data_txt.close();
     cout<<"随机数生成保存完毕,开始创建文件映射..."<<endl;
     //创建文件映射
-    auto fd = open("data.mat", O_RDONLY);
+    auto fd = open("data.dat", O_RDONLY);
     
     auto len = lseek(fd, 0, SEEK_END);
     //建立内存映射
@@ -181,11 +240,11 @@ int main() {
     close(fd);
     
     //创建输出文件映射,复制原文件内容
-    auto fd_out = open("out.mat",O_RDWR);
+    auto fd_out = open("out.dat",O_RDWR);
     
     lseek(fd_out,len-1,SEEK_END);
     write(fd_out, "", 1);
-    cout<<len<<endl;
+
     int *nums = (int *)mmap(NULL, len, PROT_READ|PROT_WRITE, MAP_SHARED, fd_out, 0);
     close(fd_out);
     
@@ -194,18 +253,32 @@ int main() {
     //解除映射
     munmap(buffer, len);
     
-    
     //进入快速排序进程
-    
-    
-    
-    
-
-    
+    pair<int, int>T = make_pair(0, Amount-1);
+    thread_open_mutex.lock();
+    Thread.push_back(std::thread(Sort,nums,T));
+    thread_open_mutex.unlock();
+    print_mutex.lock();
+    cout<<"Thread num:"<<Thread.size()<<endl;
+    print_mutex.unlock();
+    while (sorted_num<Amount);
     //解除映射
     munmap(nums, len);
+
+    //保存TXT文件
+    ifstream F("out.dat",ios::binary|ios::in);
+    F.read((char*)data, Amount*sizeof(int));
     
-    
+    ofstream out_txt("out.txt");
+    for (int i=0; i<Amount; i++) {
+        out_txt<<data[i]<<" ";
+        if(i%10==9)
+            out_txt<<endl;
+    }
+    out_txt.close();
     cout<<"一切顺利!"<<endl;
+    //销毁线程
+    for (int i = 0; i < Thread.size(); i++)
+        Thread[i].detach();
     return 0;
 }
