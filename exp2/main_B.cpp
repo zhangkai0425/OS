@@ -204,7 +204,10 @@ int main()
     memcpy(nums, buffer, len);
     //解除映射
     munmap(buffer, len);
-
+    //计时变量
+    clock_t start, finish;
+    //计时开始
+    start = clock();
     //创建Producer 线程
     thread_open_mutex.lock();
     Thread.push_back(std::thread(Producer, nums, 0, Amount - 1));
@@ -222,7 +225,8 @@ int main()
     }
 
     while (sorted_num < Amount);
-
+    //计时结束
+    finish = clock();
     //保存TXT文件
     ifstream F("out.dat", ios::binary | ios::in);
     F.read((char *)data, Amount * sizeof(int));
@@ -237,6 +241,7 @@ int main()
     out_txt.close();
     munmap(nums, len);
     cout << "一切顺利!" << endl;
+    cout << "总用时: " << double(finish - start) / CLOCKS_PER_SEC << " seconds" << endl;
     queue_length.flag = false;
     //销毁线程
     for (int i = 1; i < Thread.size(); i++)
