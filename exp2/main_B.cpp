@@ -150,9 +150,9 @@ void Sort(int *nums, int pid)
         sorted_num_mutex.unlock();
         quicksort(nums, T.first, T.second);
         request_queue.unlock();
-        print_mutex.lock();
-        cout << " 排序完数目:" << sorted_num << endl;
-        print_mutex.unlock();
+        // print_mutex.lock();
+        // cout << " 排序完数目:" << sorted_num << endl;
+        // print_mutex.unlock();
     }
 }
 
@@ -218,9 +218,9 @@ int main()
     {
         thread_open_mutex.lock();
         Thread.push_back(std::thread(Sort, nums, i + 1));
-        print_mutex.lock();
-        cout << "Thread num:" << Thread.size() << endl;
-        print_mutex.unlock();
+        // print_mutex.lock();
+        // cout << "Thread num:" << Thread.size() << endl;
+        // print_mutex.unlock();
         thread_open_mutex.unlock();
     }
 
@@ -241,6 +241,9 @@ int main()
     out_txt.close();
     munmap(nums, len);
     cout << "一切顺利!" << endl;
+    print_mutex.lock();
+    cout << " 排序完数目:" << sorted_num << endl;
+    print_mutex.unlock();
     cout << "总用时: " << double(finish - start) / CLOCKS_PER_SEC << " seconds" << endl;
     queue_length.flag = false;
     //销毁线程
