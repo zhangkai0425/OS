@@ -150,9 +150,9 @@ void Sort(int *nums, pair<int, int> LR)
                 quicksort(nums, L, R);
                 sorted_num_mutex.lock();
                 sorted_num = sorted_num + R - L + 1;
-                print_mutex.lock();
-                cout << "排序完数目:" << sorted_num << endl;
-                print_mutex.unlock();
+                // print_mutex.lock();
+                // cout << "排序完数目:" << sorted_num << endl;
+                // print_mutex.unlock();
                 sorted_num_mutex.unlock();
                 //此进程运行结束,可以从队列中取出未排序的序列->复用当前进程,不必重新关闭和开启
                 if (sorted_num == Amount)
@@ -212,7 +212,7 @@ void Sort(int *nums, pair<int, int> LR)
                         pair<int, int> T = make_pair(mid + 1, R);
                         Thread.push_back(std::thread(Sort, nums, T));
                         print_mutex.lock();
-                        cout << "线程总数:" << Thread.size() << endl;
+                        // cout << "线程总数:" << Thread.size() << endl;
                         print_mutex.unlock();
                         R = mid - 1;
                     }
@@ -240,7 +240,7 @@ int main()
     }
     std::srand(unsigned(time(nullptr)));
     for (int i = 0; i < Amount; i++)
-        data[i] = rand() % 10000;
+        data[i] = rand() % 1000000;
     data_in.write((char *)data, Amount * sizeof(int));
     data_in.close();
     data_out.close();
@@ -285,9 +285,9 @@ int main()
     thread_open_mutex.lock();
     Thread.push_back(std::thread(Sort, nums, T));
     thread_open_mutex.unlock();
-    print_mutex.lock();
-    cout << "Thread num:" << Thread.size() << endl;
-    print_mutex.unlock();
+    // print_mutex.lock();
+    // cout << "Thread num:" << Thread.size() << endl;
+    // print_mutex.unlock();
     while (sorted_num < Amount);
     //计时结束
     finish = clock();
@@ -307,6 +307,9 @@ int main()
     }
     out_txt.close();
     cout << "一切顺利!" << endl;
+    print_mutex.lock();
+    cout << "排序完数目:" << sorted_num << endl;
+    print_mutex.unlock();
     cout << "总用时: "<<double(finish - start)/CLOCKS_PER_SEC<<" seconds"<<endl;
     //销毁线程
     for (int i = 0; i < Thread.size(); i++)
