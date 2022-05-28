@@ -147,12 +147,11 @@ void Sort(int *nums, int pid)
 
         sorted_num_mutex.lock();
         sorted_num += T.second - T.first + 1;
-        cout << sorted_num << endl;
         sorted_num_mutex.unlock();
         quicksort(nums, T.first, T.second);
         request_queue.unlock();
         print_mutex.lock();
-        cout << "Pid:" << pid << " 排序完的数量:" << sorted_num << endl;
+        cout << " 排序完数目:" << sorted_num << endl;
         print_mutex.unlock();
     }
 }
@@ -241,7 +240,7 @@ int main()
     queue_length.flag = false;
     //销毁线程
     for (int i = 1; i < Thread.size(); i++)
-        Thread[i].join();
+        Thread[i].~thread();
     //解除映射
     return 0;
 }
