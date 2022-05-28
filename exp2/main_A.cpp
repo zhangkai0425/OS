@@ -1,5 +1,5 @@
 //  main.cpp
-//  操作系统大作业实验2
+//  操作系统大作业实验2-A
 //  Created by 张凯 on 2022/5/24.
 //  Copyright © 2022 张凯. All rights reserved.
 
