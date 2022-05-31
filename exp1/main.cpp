@@ -13,7 +13,7 @@
 using namespace std;
 
 //柜台数量和最大顾客数
-const int N_Counter = 1;
+const int N_Counter = 2;
 const int N_Customer = 20;
 
 int customer_number = 0;//顾客总数
@@ -36,7 +36,7 @@ struct cus_out{
     int counter_no; //柜台号
     double time_served; //结束服务时间
 };
-//自己实现的信号量
+//信号量的实现
 class Semaphore
 {
 public:
@@ -70,9 +70,9 @@ vector<cus_in>cus_ins;
 vector<cus_out>cus_outs;
 
 Semaphore sema_customer(0);                                //同步信号量,确保柜台处于等待状态情况
-
 std::mutex counter_mutex[N_Counter];                        //柜台互斥量,防止一个柜台服务多个顾客
 std::mutex customer_mutex;                                  //顾客互斥量,防止多个顾客同时取相同的号
+
 time_t time_begin = time(NULL);
 void PVcounter(int id){
     while (true) {
@@ -85,7 +85,7 @@ void PVcounter(int id){
         //模拟服务时间
         int now_serve = customer_serve;
         customer_serve ++;
-        cout<<"服务时长:"<<cus_outs[now_serve].time_serve<<" counter id:"<<id<<endl;
+        // cout<<"服务时长:"<<cus_outs[now_serve].time_serve<<" counter id:"<<id<<endl;
         std::this_thread::sleep_for(std::chrono::seconds(cus_outs[now_serve].time_serve));
         time_t time_end = time(NULL);
         cus_outs[now_serve].time_beginserve = time_start - time_begin;
@@ -96,13 +96,13 @@ void PVcounter(int id){
         counter_mutex[id].unlock();
         //总服务过的人数+1
         customer_served ++;
-        cout<<"服务结束:总服务过的人数:"<<customer_served<<endl;
+        // cout<<"服务结束:总服务过的人数:"<<customer_served<<endl;
     }
 }
 void PVcustomer(int id){
     //模拟睡眠至进入线程的时间
     std::this_thread::sleep_for(std::chrono::seconds(cus_ins[id].time_in));
-    cout<<"顾客进入银行 id = " <<cus_ins[id].cus_number<<" 进入时间:"<<cus_ins[id].time_in<<" 需要服务时长:"<<cus_ins[id].time_serve<<endl;
+    // cout<<"顾客进入银行 id = " <<cus_ins[id].cus_number<<" 进入时间:"<<cus_ins[id].time_in<<" 需要服务时长:"<<cus_ins[id].time_serve<<endl;
     //占用银行取号机
     customer_mutex.lock();
     cus_out tmp_cus;
@@ -132,6 +132,7 @@ int main(){
     }
     customer_number = cus_ins.size();
     vector<std::thread> Thread;
+
     //创建顾客线程
     for(int i=0;i<cus_ins.size();i++)
         Thread.push_back(std::thread(PVcustomer,i));
@@ -140,16 +141,19 @@ int main(){
         Thread.push_back(std::thread(PVcounter,j));
     //等待线程结束,关闭线程
     while(customer_served<customer_number);
-
+    cout<<endl;
+    cout << "柜台数量:" << N_Counter << endl;
+    cout << "顾客数量:" << customer_number << endl;
     cout<<"---------------------------顾客接待情况表----------------------------"<<endl;
-    cout << "顾客编号" << '\t' 
-         << "进入时间" << '\t' 
-         << "开始时间" << '\t' 
-         << "服务时间" << '\t' 
+    cout << "顾客编号" << '\t'
+         << "进入时间" << '\t'
+         << "开始时间" << '\t'
+         << "服务时间" << '\t'
+         << "结束时间" << '\t'
          << "柜台号  " << endl;
-         
+
     for(auto x:cus_outs)
-        cout << x.cus_number << '\t' << '\t' << x.time_in << '\t' << '\t' << x.time_beginserve << '\t' << '\t' << x.time_serve << '\t' << '\t'<<x.counter_no<<endl;
+        cout << x.cus_number << '\t' << '\t' << x.time_in << '\t' << '\t' << x.time_beginserve << '\t' << '\t' << x.time_serve << '\t' << '\t' << x.time_beginserve + x.time_serve << '\t' << '\t' << x.counter_no << endl;
 
     for (int i = 0; i < Thread.size(); i++)
         Thread[i].~thread();
