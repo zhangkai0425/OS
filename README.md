@@ -39,3 +39,20 @@ g++ -std=c++11 main_B.cpp -o mainn_B -lpthread
 ./mainn_B
 ```
 
+
+
+### 操作系统大作业 实验3 处理机调度
+
+银行家算法的模拟与实现
+
+Linux/Mac/Windows均可正常编译
+
+Linux 下编译命令
+
+```bash
+cd exp3
+ls
+g++ -std=c++11 main.cpp -o mainn
+./mainn
+```
+
